@@ -1,0 +1,31 @@
+
+.bardTextInputContainer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.bardTextInput {
+  width: 100%;
+  height: 40px;
+  border: 1px solid black;
+  border-radius: 5px;
+  resize: none;
+}
+
+.bardSubmitButton {
+  margin-top: 10px;
+  background-color: #007bff;
+  color: white;
+  border: 1px solid #007bff;
+  border-radius: 5px;
+  padding: 10px;
+  cursor: pointer;
+}
