@@ -126,3 +126,32 @@
     transform: translateX(10px);
   }
 }
+
+
+p{
+  margin: 0px;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 6px;
+  border: 0;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  border-radius: 10px;
+  border: 0;
+}
+ 
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 8, 16, 0.068); 
+  border-radius: 10px;
+  border: 0;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #aee0ff7d; 
+}
