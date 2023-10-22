@@ -36,6 +36,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 import Google from 'assets/images/icons/social-google.svg';
 import Facebook from 'assets/images/icons/social-facebook.svg';
+import AuthenticationService from 'services/AuthenticationService';
 
 // ============================|| FIREBASE - LOGIN ||============================ //
 
@@ -147,8 +148,8 @@ const FirebaseLogin = ({ ...others }) => {
 
       <Formik
         initialValues={{
-          email: 'intelligent@chatbot.com',
-          password: '12345',
+          email: 'frontend@startup.ai',
+          password: 'Frontend@1234',
           submit: null
         }}
         validationSchema={Yup.object().shape({
@@ -158,6 +159,19 @@ const FirebaseLogin = ({ ...others }) => {
         onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
           try {
             if (scriptedRef.current) {
+
+              // Logging in with API
+              AuthenticationService.login(values.email, values.password)
+                .then((responseData) => {
+                  console.log("Response", responseData)
+                })
+                .catch((error) => {
+                  console.error('Error fetching data:', error);
+                });
+
+
+             
+
               setStatus({ success: true });
               setSubmitting(true);
             }
@@ -241,14 +255,11 @@ const FirebaseLogin = ({ ...others }) => {
             )}
 
             <Box sx={{ mt: 2 }}>
-              <Link to={{
-                pathname: '/dashboard',
-                state: []
-              }}><AnimateButton>
-                  <Button disableElevation disabled={isSubmitting} fullWidth size="large" type="submit" variant="contained" color="secondary">
-                    Sign in
-                  </Button>
-                </AnimateButton></Link>
+              <AnimateButton>
+                <Button disableElevation disabled={isSubmitting} fullWidth size="large" type="submit" variant="contained" color="secondary">
+                  Sign in
+                </Button>
+              </AnimateButton>
             </Box>
           </form>
         )}
