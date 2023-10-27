@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -37,6 +37,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Google from 'assets/images/icons/social-google.svg';
 import Facebook from 'assets/images/icons/social-facebook.svg';
 import AuthenticationService from 'services/AuthenticationService';
+import { SET_TOKEN } from 'store/actions';
 
 // ============================|| FIREBASE - LOGIN ||============================ //
 
@@ -45,7 +46,12 @@ const FirebaseLogin = ({ ...others }) => {
   const scriptedRef = useScriptRef();
   const matchDownSM = useMediaQuery(theme.breakpoints.down('md'));
   const customization = useSelector((state) => state.customization);
+  const [isSubmitting,setSubmitting] = useState(false)
+  const dispatch = useDispatch();
+  const navigate = useNavigate()
   const [checked, setChecked] = useState(true);
+
+  const navigateDashboard = () => navigate('/dashboard');
 
   const googleHandler = async () => {
     console.error('Login');
@@ -157,32 +163,47 @@ const FirebaseLogin = ({ ...others }) => {
           password: Yup.string().max(255).required('Password is required')
         })}
         onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
-          try {
-            if (scriptedRef.current) {
+          
+          setTimeout(() => {
+            try {
+              if (scriptedRef.current) {
+                setSubmitting(true);
+                // Logging in with API
+                AuthenticationService.login(values.email, values.password)
+                  .then((responseData) => {
+                    console.log("Response", responseData)
+                    if(responseData['data']){
+                      if(responseData['data']['token']){
+                        //Login
+                        dispatch({ type: SET_TOKEN, token: responseData['data']['token'] })
+                        navigateDashboard();
+                      }else{
+                        setErrors({ submit: "Something went wrong!" });
+                      }
+                    }else{
+                      setErrors({ submit: "Something went wrong!" });
+                    }
+                    setStatus({ success: true });
+                    setSubmitting(false);
+                  })
+                  .catch((error) => {
+                    setErrors({ submit: error.message });
+                    console.error('Error fetching data:', error);
+                    setStatus({ success: false });
+                    setSubmitting(false);
+                  });
 
-              // Logging in with API
-              AuthenticationService.login(values.email, values.password)
-                .then((responseData) => {
-                  console.log("Response", responseData)
-                })
-                .catch((error) => {
-                  console.error('Error fetching data:', error);
-                });
-
-
-             
-
-              setStatus({ success: true });
-              setSubmitting(true);
+              }
+            } catch (err) {
+              console.error(err);
+              if (scriptedRef.current) {
+                setStatus({ success: false });
+                setErrors({ submit: err.message });
+                setSubmitting(false);
+              }
             }
-          } catch (err) {
-            console.error(err);
-            if (scriptedRef.current) {
-              setStatus({ success: false });
-              setErrors({ submit: err.message });
-              setSubmitting(false);
-            }
-          }
+          })
+
         }}
       >
         {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (

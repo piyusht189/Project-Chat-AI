@@ -1,7 +1,12 @@
 const API_BASE_URL = 'http://34.16.164.105:8080'; // Replace with your API base URL
 
-async function getRequest(endpoint) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`);
+async function getRequest(endpoint, token) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'GET',
+    headers: new Headers(token? {
+      'Authorization': 'Bearer '+ token
+    }: {}) 
+  });
 
   if (!response.ok) {
     throw new Error(`Error fetching data: ${response.status}`);
@@ -10,11 +15,14 @@ async function getRequest(endpoint) {
   return response.json();
 }
 
-async function postRequest(endpoint, data) {
+async function postRequest(endpoint, data, token) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'POST',
-    headers: {
+    headers: token ? {
       'Content-Type': 'application/json',
+      'Authorization': 'Bearer '+ token
+    } : {
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(data),
   });
@@ -26,11 +34,14 @@ async function postRequest(endpoint, data) {
   return response.json();
 }
 
-async function putRequest(endpoint, data) {
+async function putRequest(endpoint, data, token) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'PUT',
-    headers: {
+    headers: token ? {
       'Content-Type': 'application/json',
+      'Authorization': 'Bearer '+ token
+    } : {
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(data),
   });
@@ -42,9 +53,15 @@ async function putRequest(endpoint, data) {
   return response.json();
 }
 
-async function deleteRequest(endpoint) {
+async function deleteRequest(endpoint, token) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'DELETE',
+    headers: token ? {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer '+ token
+    } : {
+      'Content-Type': 'application/json'
+    },
   });
 
   if (!response.ok) {

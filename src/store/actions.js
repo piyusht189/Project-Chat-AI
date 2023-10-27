@@ -7,3 +7,5 @@ export const SET_BORDER_RADIUS = '@customization/SET_BORDER_RADIUS';
 
 
 export const SET_COLLECTIONS = '@customization/SET_COLLECTIONS';
+export const SET_TOKEN = '@customization/SET_TOKEN';
+export const REMOVE_TOKEN = '@customization/REMOVE_TOKEN';

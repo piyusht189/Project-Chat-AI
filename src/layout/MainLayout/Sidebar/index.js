@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
-import { Box, Button, Chip, Drawer, FormControl, FormHelperText, Grid, InputLabel, OutlinedInput, Stack, TextField, TextareaAutosize, useMediaQuery } from '@mui/material';
+import { Box, Button, Chip, Divider, Drawer, FormControl, FormHelperText, Grid, InputLabel, List, OutlinedInput, Stack, TextField, TextareaAutosize, useMediaQuery } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 
 // third-party
@@ -23,15 +23,16 @@ import { Formik } from 'formik';
 import useScriptRef from 'hooks/useScriptRef';
 import CloseIcon from '@mui/icons-material/Close';
 
-// project imports
-import NavGroup from './MenuList/NavGroup';
-// assets
-import { IconFileStack } from '@tabler/icons';
-import { SET_COLLECTIONS } from 'store/actions';
-import { useDispatch } from 'react-redux';
 
-// constant
-const icons = { IconFileStack };
+// assets
+
+import { SET_COLLECTIONS } from 'store/actions';
+import { useDispatch, useSelector } from 'react-redux';
+import CollectionService from 'services/CollectionService';
+import { useEffect } from 'react';
+import NavItem from './MenuList/NavItem';
+
+
 
 
 
@@ -39,6 +40,7 @@ const Fade = React.forwardRef(function Fade(props, ref) {
   const {
     children,
     in: open,
+    in: openEdit,
     onClick,
     onEnter,
     onExited,
@@ -47,14 +49,14 @@ const Fade = React.forwardRef(function Fade(props, ref) {
   } = props;
   const style = useSpring({
     from: { opacity: 0 },
-    to: { opacity: open ? 1 : 0 },
+    to: { opacity: open || openEdit ? 1 : 0 },
     onStart: () => {
-      if (open && onEnter) {
+      if ((open || openEdit) && onEnter) {
         onEnter(null, true);
       }
     },
     onRest: () => {
-      if (!open && onExited) {
+      if ((!open || !openEdit) && onExited) {
         onExited(null, true);
       }
     },
@@ -96,68 +98,82 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
   const matchUpMd = useMediaQuery(theme.breakpoints.up('md'));
   const scriptedRef = useScriptRef();
   const matchDownSM = useMediaQuery(theme.breakpoints.down('md'));
+  const customization = useSelector((state) => state.customization);
   const [open, setOpen] = React.useState(false);
+  const [openEdit, setOpenEdit] = React.useState(false);
+  const [itemHolder, setItemHolder] = React.useState({});
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+  const handleOpenEdit = (item) => {
+    setItemHolder(item)
+    setOpenEdit(true)
+  }
+  const handleCloseEdit = () => setOpenEdit(false);
 
   const [collections, setCollections] = React.useState({
     id: 'collections',
     title: 'Collections',
     type: 'group',
-    children: [
-      {
-        id: 'medbill',
-        caption: "My personal medical bills",
-        title: 'Medical Bills',
-        type: 'item',
-        url: '/dashboard/default',
-        chip: {
-          color: 'primary',
-          variant: 'outlined',
-          size: '20',
-          label: 'Options',
-          avatar: 'Hi'
-        },
-        icon: icons.IconFileStack,
-        breadcrumbs: false
-      },
-      {
-        id: 'medbill1',
-        caption: "Research Papers on CNN",
-        title: 'Research Papers',
-        type: 'item',
-        url: '/dashboard/default',
-        icon: icons.IconFileStack,
-        breadcrumbs: false
-      },
-      {
-        id: 'medbill2',
-        caption: "Law Document on Tax Research",
-        title: 'Laws',
-        type: 'item',
-        url: '/dashboard/default',
-        icon: icons.IconFileStack,
-        breadcrumbs: false
-      },
-      {
-        id: 'medbill3',
-        caption: "Anatomy books for doctors",
-        title: 'Medical Queries',
-        type: 'item',
-        url: '/dashboard/default',
-        icon: icons.IconFileStack,
-        breadcrumbs: false
-      }
-    ]
+    children: []
   });
   const dispatch = useDispatch();
-  const setCollectionsToRedux = () => {
-    dispatch({ type: SET_COLLECTIONS, collections: collections['children']});
+  const setCollectionsToRedux = (children) => {
+    dispatch({ type: SET_COLLECTIONS, collections: children });
   };
- 
 
-  setCollectionsToRedux()
+  const setCollectionsChildren = (childrens) => {
+    // Setting collections to state
+    setCollections({
+      id: 'collections',
+      title: 'Collections',
+      type: 'group',
+      children: childrens
+    })
 
+    // Setting collections to redux
+    setCollectionsToRedux(childrens);
+  }
+
+
+
+  useEffect(() => {
+    // Fetching all the collections and pushing to the redux
+    CollectionService.getCollections(customization.token).then((responseData) => {
+      console.log("Response", responseData)
+      if (responseData.constructor === Array) {
+        setCollectionsChildren(responseData)
+      }
+    }).catch((error) => {
+      console.error('Error fetching data:', error);
+    });
+  }, []);
+
+  // menu list collapse & items
+  const items = collections.children?.map((menu) => {
+    return <NavItem key={menu.id} item={menu} level={1} onOpenEditModal={handleOpenEdit} />
+  })
+
+  const collectionItem = () => {
+    return (<div>
+      <List key={collections.id}
+        subheader={
+          collections.title && (
+            <Typography variant="caption" sx={{ ...theme.typography.menuCaption }} display="block" gutterBottom>
+              {collections.title}
+              {collections.caption && (
+                <Typography variant="caption" sx={{ ...theme.typography.subMenuCaption }} display="block" gutterBottom>
+                  {collections.caption}
+                </Typography>
+              )}
+            </Typography>
+          )
+        }
+      >
+        {items}
+      </List>
+      <Divider sx={{ mt: 0.25, mb: 1.25 }} />
+    </div>)
+  }
 
 
   const drawer = (
@@ -184,7 +200,9 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
               </Button>
             </AnimateButton>
           </Box>
-          <NavGroup key={collections.id} item={collections} />
+          {collections.children.length > 0 &&
+            collectionItem()
+          }
           <Stack direction="row" justifyContent="center" sx={{ mb: 2 }}>
             <Chip label={process.env.REACT_APP_VERSION} disabled chipcolor="secondary" size="small" sx={{ cursor: 'pointer' }} />
           </Stack>
@@ -192,7 +210,9 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
       </BrowserView>
       <MobileView>
         <Box sx={{ px: 2 }}>
-        <NavGroup key={collections.id} item={collections} />
+          {collections.children.length > 0 &&
+            collectionItem()
+          }
           <Stack direction="row" justifyContent="center" sx={{ mb: 2 }}>
             <Chip label={process.env.REACT_APP_VERSION} disabled chipcolor="secondary" size="small" sx={{ cursor: 'pointer' }} />
           </Stack>
@@ -205,7 +225,6 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
         onClose={handleClose}
         closeAfterTransition
         slots={{ backdrop: Backdrop }}
-       
         slotProps={{
           backdrop: {
             TransitionComponent: Fade,
@@ -213,10 +232,10 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
         }}
       >
         <Fade in={open}>
-          
+
           <Box sx={style}>
-          <CloseIcon onClick={handleClose} style={{ position: 'absolute', right: '-16px', top: '-16px', background: '#623cb1', color: '#fff', borderRadius: '40px', width: '30px',height: '30px', padding: '6px', cursor: 'pointer' }} fontSize="inherit" />
-            <Typography id="spring-modal-title" variant="h3" component="h1" style={{marginBottom: 20}}>
+            <CloseIcon onClick={handleClose} style={{ position: 'absolute', right: '-16px', top: '-16px', background: '#623cb1', color: '#fff', borderRadius: '40px', width: '30px', height: '30px', padding: '6px', cursor: 'pointer' }} fontSize="inherit" />
+            <Typography id="spring-modal-title" variant="h3" component="h1" style={{ marginBottom: 20 }}>
               New Collection
             </Typography>
             <Formik
@@ -227,65 +246,81 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
               }}
               onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
                 try {
-                  if (scriptedRef.current) {
-                    console.log("Values", values)
-                    var collections_cpy = collections
-                    collections_cpy["children"].push({
-                      id: values.name,
-                      caption: values.description,
-                      title: values.name,
-                      type: 'item',
-                      url: '/dashboard/default',
-                      icon: icons.IconFileStack,
-                      breadcrumbs: false
-                  })
-                    setCollections(collections_cpy)
-                    console.log(collections)
-                    setStatus({ success: true });
-                    handleClose()
+                  console.log("Values", values)
+                  setSubmitting(true)
+                  var collections_cpy = collections.children
+
+                  // Adding collection API Call
+                  CollectionService.addCollection(values.name, values.description, customization.token).then((responseData) => {
+                    console.log("Response", responseData)
+                    if (responseData.constructor === Object) {
+                      if (responseData['collection_id']) {
+                        let collectionObject = {
+                          id: responseData['collection_id'],
+                          name: values.name,
+                          description: values.description,
+                          chat_count: 0,
+                          conversation_count: 0
+                        }
+                        collections_cpy.push(collectionObject)
+                        setCollectionsChildren(collections_cpy)
+                        setStatus({ success: true });
+                        handleClose()
+                        setSubmitting(false);
+                      }
+
+
+                    }
+                  }).catch((error) => {
+                    console.error('Error fetching data:', error);
+                    setStatus({ success: false });
+                    setErrors({ submit: "Something went wrong!" });
                     setSubmitting(false);
-                  }
+                  });
+
+
+
+
                 } catch (err) {
                   console.error(err);
-                  if (scriptedRef.current) {
                     setStatus({ success: false });
                     setErrors({ submit: err.message });
                     setSubmitting(false);
-                  }
+                  
                 }
               }}
             >
               {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
                 <form noValidate onSubmit={handleSubmit}>
                   <Grid container>
-                      <TextField
-                        fullWidth
-                        label="Collection Name"
-                        margin="normal"
-                        name="name"
-                        type="text"
-                        value={values.name}
-                        onBlur={handleBlur}
-                onChange={handleChange}
-                        sx={{ ...theme.typography.customInput }}
-                      />
-                   
+                    <TextField
+                      fullWidth
+                      label="Collection Name"
+                      margin="normal"
+                      name="name"
+                      type="text"
+                      value={values.name}
+                      onBlur={handleBlur}
+                      onChange={handleChange}
+                      sx={{ ...theme.typography.customInput }}
+                    />
+
                   </Grid>
-                  <Grid container style={{marginBottom: 20, paddingTop: 10}}>
-                      <TextField
-                        fullWidth
-                        label="Description"
-                        multiline
-                        value={values.description}
-                        onBlur={handleBlur}
-                onChange={handleChange}
-                        minRows={4}
-                        style={{minHeight: 100}}
-                        name="description"
-                      />
-                   
+                  <Grid container style={{ marginBottom: 20, paddingTop: 10 }}>
+                    <TextField
+                      fullWidth
+                      label="Description"
+                      multiline
+                      value={values.description}
+                      onBlur={handleBlur}
+                      onChange={handleChange}
+                      minRows={4}
+                      style={{ minHeight: 100 }}
+                      name="description"
+                    />
+
                   </Grid>
-                  
+
                   {errors.submit && (
                     <Box sx={{ mt: 3 }}>
                       <FormHelperText error>{errors.submit}</FormHelperText>
@@ -295,8 +330,132 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
                   <Box sx={{ mt: 2 }}>
                     <AnimateButton>
                       <Button disableElevation disabled={isSubmitting} fullWidth size="large" type="submit" variant="contained" color="secondary">
-                      <AddIcon style={{ marginRight: 4 }} fontSize="inherit" />
+                        <AddIcon style={{ marginRight: 4 }} fontSize="inherit" />
                         Create Collection
+                      </Button>
+                    </AnimateButton>
+                  </Box>
+                </form>
+              )}
+            </Formik>
+          </Box>
+        </Fade>
+      </Modal>
+      <Modal
+        aria-labelledby="spring-modal-title"
+        aria-describedby="spring-modal-description"
+        open={openEdit}
+        onClose={handleCloseEdit}
+        closeAfterTransition
+        slots={{ backdrop: Backdrop }}
+
+        slotProps={{
+          backdrop: {
+            TransitionComponent: Fade,
+          },
+        }}
+      >
+        <Fade in={openEdit}>
+
+          <Box sx={style}>
+            <CloseIcon onClick={handleCloseEdit} style={{ position: 'absolute', right: '-16px', top: '-16px', background: '#623cb1', color: '#fff', borderRadius: '40px', width: '30px', height: '30px', padding: '6px', cursor: 'pointer' }} fontSize="inherit" />
+            <Typography id="spring-modal-title" variant="h3" component="h1" style={{ marginBottom: 20 }}>
+              Edit Collection
+            </Typography>
+            <Formik
+              initialValues={{
+                name: itemHolder.name,
+                description: itemHolder.description,
+                submit: null
+              }}
+              onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
+                try {
+
+                  console.log("Values", values)
+                  setSubmitting(true)
+                  var collections_cpy = collections.children
+
+                  // Adding collection API Call
+                  CollectionService.updateCollection(itemHolder.id, values.name, values.description, customization.token).then((responseData) => {
+                    console.log("Response", responseData)
+
+
+
+                    if (responseData.constructor === Object) {
+
+                        collections_cpy = collections_cpy.map(e => {
+                          if(e.id == itemHolder.id){
+                            e['name'] = values.name,
+                            e['description'] = values.description
+                          }
+                          return e
+                        })
+
+                        setCollectionsChildren(collections_cpy)
+                        setStatus({ success: true });
+                        handleCloseEdit()
+                        setSubmitting(false);
+                    }
+
+                  }).catch((error) => {
+                    console.error('Error fetching data:', error);
+                    setStatus({ success: false });
+                    setErrors({ submit: "Something went wrong!" });
+                    setSubmitting(false);
+                  });
+
+
+
+
+                } catch (err) {
+                  console.error(err);
+                    setStatus({ success: false });
+                    setErrors({ submit: err.message });
+                    setSubmitting(false);
+                }
+              }}
+            >
+              {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
+                <form noValidate onSubmit={handleSubmit}>
+                  <Grid container>
+                    <TextField
+                      fullWidth
+                      label="Collection Name"
+                      margin="normal"
+                      name="name"
+                      type="text"
+                      value={values.name}
+                      onBlur={handleBlur}
+                      onChange={handleChange}
+                      sx={{ ...theme.typography.customInput }}
+                    />
+
+                  </Grid>
+                  <Grid container style={{ marginBottom: 20, paddingTop: 10 }}>
+                    <TextField
+                      fullWidth
+                      label="Description"
+                      multiline
+                      value={values.description}
+                      onBlur={handleBlur}
+                      onChange={handleChange}
+                      minRows={4}
+                      style={{ minHeight: 100 }}
+                      name="description"
+                    />
+
+                  </Grid>
+
+                  {errors.submit && (
+                    <Box sx={{ mt: 3 }}>
+                      <FormHelperText error>{errors.submit}</FormHelperText>
+                    </Box>
+                  )}
+
+                  <Box sx={{ mt: 2 }}>
+                    <AnimateButton>
+                      <Button disableElevation disabled={isSubmitting} fullWidth size="large" type="submit" variant="contained" color="secondary">
+                        Save Collection
                       </Button>
                     </AnimateButton>
                   </Box>

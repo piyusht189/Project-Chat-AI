@@ -31,7 +31,13 @@ const ChatList = ({ chatData }) => {
                     }
                 })
             }
-
+             <div style={{ display: 'flex', marginTop: 25, marginBottom: 15, background: "white", padding: 25, borderRadius: 25 }}>
+                                <img src={botIcon} alt="User" style={{ width: 40, height: 40 }}></img>
+                                <p style={{ marginLeft: 20, marginTop: 'auto', marginBottom: 'auto', lineHeight: "21px" }}>
+                                    <AIWriter delay={100}>{chatData[1].message}</AIWriter>
+                                
+                                </p>
+                            </div>
 
         </div>
     );

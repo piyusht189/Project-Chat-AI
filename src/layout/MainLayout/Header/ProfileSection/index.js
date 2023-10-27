@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 import { Link, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
@@ -30,6 +30,7 @@ import avatar from 'assets/images/icons/avatar.png';
 
 // assets
 import { IconLogout, IconSettings } from '@tabler/icons';
+import { REMOVE_TOKEN } from 'store/actions';
 
 // ==============================|| PROFILE MENU ||============================== //
 
@@ -37,6 +38,7 @@ const ProfileSection = () => {
   const theme = useTheme();
   const customization = useSelector((state) => state.customization);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
 
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -45,8 +47,14 @@ const ProfileSection = () => {
    * anchorRef is used on different componets and specifying one type leads to other components throwing an error
    * */
   const anchorRef = useRef(null);
+
+  const navigateLogin = () => navigate('/login');
+
+
+
   const handleLogout = async () => {
-    console.log('Logout');
+    dispatch({ type: REMOVE_TOKEN })
+    navigateLogin();
   };
 
   const handleClose = (event) => {
@@ -75,7 +83,12 @@ const ProfileSection = () => {
     }
 
     prevOpen.current = open;
-  }, [open]);
+
+    if(!customization.token){
+      navigateLogin();
+    }
+
+  }, [open, customization]);
 
   return (
     <>
